@@ -112,6 +112,8 @@ struct ast_filestream {
 	struct ast_trans_pvt *trans;
 	struct ast_translator_pvt *tr;
 	struct ast_format *lastwriteformat;
+	/*! Playback speed multiplier. 1.0 is normal speed. */
+	double playback_rate;
 	int lasttimeout;
 	struct ast_channel *owner;
 	FILE *f;

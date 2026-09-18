@@ -80,6 +80,12 @@
 					</option>
 				</optionlist>
 			</parameter>
+			<parameter name="speed">
+				<para>Playback speed multiplier. The default is <literal>1.0</literal>.
+				Values greater than 1 play faster; values less than 1 play slower.
+				The supported range is greater than 0 through 4. This parameter is
+				not supported with the <literal>say</literal> option.</para>
+			</parameter>
 		</syntax>
 		<description>
 			<para>Plays back given filenames (do not put extension of wav/alaw etc).
@@ -465,10 +471,13 @@ static int playback_exec(struct ast_channel *chan, const char *data)
 	int option_say=0;
 	int option_mix=0;
 	int option_noanswer = 0;
+	double playback_rate = 1.0;
+	char *endptr;
 
 	AST_DECLARE_APP_ARGS(args,
 		AST_APP_ARG(filenames);
 		AST_APP_ARG(options);
+		AST_APP_ARG(speed);
 	);
 
 	if (ast_strlen_zero(data)) {
@@ -478,6 +487,15 @@ static int playback_exec(struct ast_channel *chan, const char *data)
 
 	tmp = ast_strdupa(data);
 	AST_STANDARD_APP_ARGS(args, tmp);
+	if (!ast_strlen_zero(args.speed)) {
+		errno = 0;
+		playback_rate = strtod(args.speed, &endptr);
+		if (*endptr || errno == ERANGE || !isfinite(playback_rate)
+			|| playback_rate <= 0.0 || playback_rate > 4.0) {
+			ast_log(LOG_WARNING, "Playback speed '%s' must be greater than 0 and no more than 4\n", args.speed);
+			return -1;
+		}
+	}
 
 	if (args.options) {
 		if (strcasestr(args.options, "skip"))
@@ -488,6 +506,10 @@ static int playback_exec(struct ast_channel *chan, const char *data)
 			option_mix = 1;
 		if (strcasestr(args.options, "noanswer"))
 			option_noanswer = 1;
+	}
+	if (option_say && playback_rate != 1.0) {
+		ast_log(LOG_WARNING, "Playback speed is not supported with the say option\n");
+		return -1;
 	}
 	if (ast_channel_state(chan) != AST_STATE_UP) {
 		if (option_skip) {
@@ -508,13 +530,18 @@ static int playback_exec(struct ast_channel *chan, const char *data)
 				res = say_full(chan, front, "", ast_channel_language(chan), NULL, -1, -1);
 			else if (option_mix){
 				/* Check if it is in say format but not remote audio file */
-				if (strcasestr(front, ":") && !strcasestr(front, "://"))
-					res = say_full(chan, front, "", ast_channel_language(chan), NULL, -1, -1);
-				else
-					res = ast_streamfile(chan, front, ast_channel_language(chan));
+				if (strcasestr(front, ":") && !strcasestr(front, "://")) {
+					if (playback_rate != 1.0) {
+						ast_log(LOG_WARNING, "Playback speed is not supported with say entries in the mix option\n");
+						res = -1;
+					} else {
+						res = say_full(chan, front, "", ast_channel_language(chan), NULL, -1, -1);
+					}
+				} else
+					res = ast_streamfile_rate(chan, front, ast_channel_language(chan), playback_rate);
 			}
 			else
-				res = ast_streamfile(chan, front, ast_channel_language(chan));
+				res = ast_streamfile_rate(chan, front, ast_channel_language(chan), playback_rate);
 			if (!res) {
 				res = ast_waitstream(chan, "");
 				ast_stopstream(chan);

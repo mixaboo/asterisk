@@ -77,6 +77,22 @@ typedef void (ast_waitstream_fr_cb)(struct ast_channel *chan, long ms, enum ast_
 int ast_streamfile(struct ast_channel *c, const char *filename, const char *preflang);
 
 /*!
+ * \brief Streams a file at a specified speed
+ * \param c channel to stream the file to
+ * \param filename the name of the file you wish to stream, minus the extension
+ * \param preflang the preferred language you wish to have the file streamed to you in
+ * \param playback_rate speed multiplier; 1.0 is normal speed
+ *
+ * Prepares a channel for streaming a file, as ast_streamfile() does, but schedules
+ * the file frames at playback_rate times their normal rate.
+ *
+ * \retval 0 on success.
+ * \retval -1 on failure, including an invalid playback rate.
+ */
+int ast_streamfile_rate(struct ast_channel *c, const char *filename, const char *preflang,
+	double playback_rate);
+
+/*!
  * \brief stream file until digit
  * If the file name is non-empty, try to play it.
  * \note If digits == "" then we can simply check for non-zero.
