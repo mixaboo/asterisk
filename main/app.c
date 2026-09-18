@@ -1284,7 +1284,8 @@ static int control_streamfile(struct ast_channel *chan,
 	int skipms,
 	long *offsetms,
 	const char *lang,
-	ast_waitstream_fr_cb cb)
+	ast_waitstream_fr_cb cb,
+	double playback_rate)
 {
 	char *file_copy = ast_strdupa(file);
 	char *breaks = NULL;
@@ -1340,7 +1341,7 @@ static int control_streamfile(struct ast_channel *chan,
 
 	for (;;) {
 		ast_stopstream(chan);
-		res = ast_streamfile(chan, file_copy, lang);
+		res = ast_streamfile_rate(chan, file_copy, lang, playback_rate);
 		if (!res) {
 			if (pause_restart_point) {
 				ast_seekstream(ast_channel_stream(chan), pause_restart_point, SEEK_SET);
@@ -1460,7 +1461,7 @@ int ast_control_streamfile_w_cb(struct ast_channel *chan,
 	long *offsetms,
 	ast_waitstream_fr_cb cb)
 {
-	return control_streamfile(chan, file, fwd, rev, stop, suspend, restart, skipms, offsetms, NULL, cb);
+	return control_streamfile(chan, file, fwd, rev, stop, suspend, restart, skipms, offsetms, NULL, cb, 1.0);
 }
 
 int ast_control_streamfile(struct ast_channel *chan, const char *file,
@@ -1468,14 +1469,23 @@ int ast_control_streamfile(struct ast_channel *chan, const char *file,
 			   const char *stop, const char *suspend,
 			   const char *restart, int skipms, long *offsetms)
 {
-	return control_streamfile(chan, file, fwd, rev, stop, suspend, restart, skipms, offsetms, NULL, NULL);
+	return control_streamfile(chan, file, fwd, rev, stop, suspend, restart, skipms, offsetms, NULL, NULL, 1.0);
 }
 
 int ast_control_streamfile_lang(struct ast_channel *chan, const char *file,
 	const char *fwd, const char *rev, const char *stop, const char *suspend,
 	const char *restart, int skipms, const char *lang, long *offsetms)
 {
-	return control_streamfile(chan, file, fwd, rev, stop, suspend, restart, skipms, offsetms, lang, NULL);
+	return control_streamfile(chan, file, fwd, rev, stop, suspend, restart, skipms, offsetms, lang, NULL, 1.0);
+}
+
+int ast_control_streamfile_lang_rate(struct ast_channel *chan, const char *file,
+	const char *fwd, const char *rev, const char *stop, const char *suspend,
+	const char *restart, int skipms, const char *lang, long *offsetms,
+	double playback_rate)
+{
+	return control_streamfile(chan, file, fwd, rev, stop, suspend, restart, skipms,
+		offsetms, lang, NULL, playback_rate);
 }
 
 enum control_tone_frame_response_result {

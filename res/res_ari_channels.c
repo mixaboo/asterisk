@@ -1948,6 +1948,10 @@ int ast_ari_channels_play_parse_body(
 	if (field) {
 		args->skipms = ast_json_integer_get(field);
 	}
+	field = ast_json_object_get(body, "speed");
+	if (field) {
+		args->speed = ast_json_real_get(field);
+	}
 	field = ast_json_object_get(body, "playbackId");
 	if (field) {
 		args->playback_id = ast_json_string_get(field);
@@ -2028,6 +2032,9 @@ static void ast_ari_channels_play_cb(
 		} else
 		if (strcmp(i->name, "skipms") == 0) {
 			args.skipms = atoi(i->value);
+		} else
+		if (strcmp(i->name, "speed") == 0) {
+			args.speed = atof(i->value);
 		} else
 		if (strcmp(i->name, "playbackId") == 0) {
 			args.playback_id = (i->value);
@@ -2128,6 +2135,10 @@ int ast_ari_channels_play_with_id_parse_body(
 	if (field) {
 		args->skipms = ast_json_integer_get(field);
 	}
+	field = ast_json_object_get(body, "speed");
+	if (field) {
+		args->speed = ast_json_real_get(field);
+	}
 	return 0;
 }
 
@@ -2204,6 +2215,9 @@ static void ast_ari_channels_play_with_id_cb(
 		} else
 		if (strcmp(i->name, "skipms") == 0) {
 			args.skipms = atoi(i->value);
+		} else
+		if (strcmp(i->name, "speed") == 0) {
+			args.speed = atof(i->value);
 		} else
 		{}
 	}

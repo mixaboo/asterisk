@@ -1040,6 +1040,18 @@ int ast_control_streamfile_lang(struct ast_channel *chan, const char *file,
 	const char *restart, int skipms, const char *lang, long *offsetms);
 
 /*!
+ * \brief Version of ast_control_streamfile_lang() which plays media at a specified speed.
+ * \param playback_rate Playback speed multiplier; 1.0 is normal speed.
+ *
+ * \retval 0 on success
+ * \retval Non-zero on failure
+ */
+int ast_control_streamfile_lang_rate(struct ast_channel *chan, const char *file,
+	const char *fwd, const char *rev, const char *stop, const char *suspend,
+	const char *restart, int skipms, const char *lang, long *offsetms,
+	double playback_rate);
+
+/*!
  * \brief Controls playback of a tone
  *
  * \retval 0 on success

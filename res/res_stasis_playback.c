@@ -86,6 +86,8 @@ struct stasis_app_playback {
 	int skipms;
 	/*! Number of milliseconds of media that has been played */
 	long playedms;
+	/*! Playback speed multiplier */
+	double playback_rate;
 	/*! Current playback state */
 	enum stasis_app_playback_state state;
 	/*! Set when the playback can be controlled */
@@ -330,9 +332,9 @@ static void play_on_channel(struct stasis_app_playback *playback,
 			playback->controllable = 1;
 
 			/* Play sound */
-			res = ast_control_streamfile_lang(chan, playback->media + strlen(SOUND_URI_SCHEME),
+			res = ast_control_streamfile_lang_rate(chan, playback->media + strlen(SOUND_URI_SCHEME),
 					fwd, rev, stop, pause, restart, playback->skipms, playback->language,
-					&offsetms);
+					&offsetms, playback->playback_rate);
 		} else if (ast_begins_with(playback->media, RECORDING_URI_SCHEME)) {
 			/* Play recording */
 			RAII_VAR(struct stasis_app_stored_recording *, recording, NULL,
@@ -349,9 +351,9 @@ static void play_on_channel(struct stasis_app_playback *playback,
 
 			playback->controllable = 1;
 
-			res = ast_control_streamfile_lang(chan,
+			res = ast_control_streamfile_lang_rate(chan,
 				stasis_app_stored_recording_get_file(recording), fwd, rev, stop, pause,
-				restart, playback->skipms, playback->language, &offsetms);
+				restart, playback->skipms, playback->language, &offsetms, playback->playback_rate);
 		} else if (ast_begins_with(playback->media, NUMBER_URI_SCHEME)) {
 			int number;
 
@@ -489,12 +491,16 @@ struct stasis_app_playback *stasis_app_control_play_uri(
 	struct stasis_app_control *control, const char **media,
 	size_t media_count, const char *language, const char *target_id,
 	enum stasis_app_playback_target_type target_type,
-	int skipms, long offsetms, const char *id)
+	int skipms, long offsetms, double playback_rate, const char *id)
 {
 	struct stasis_app_playback *playback;
 	size_t i;
 
-	if (skipms < 0 || offsetms < 0 || media_count == 0) {
+	if (playback_rate == 0.0) {
+		playback_rate = 1.0;
+	}
+	if (skipms < 0 || offsetms < 0 || !isfinite(playback_rate)
+		|| playback_rate <= 0.0 || playback_rate > 4.0 || media_count == 0) {
 		return NULL;
 	}
 
@@ -540,6 +546,7 @@ struct stasis_app_playback *stasis_app_control_play_uri(
 	set_target_uri(playback, target_type, target_id);
 	playback->skipms = skipms;
 	playback->offsetms = offsetms;
+	playback->playback_rate = playback_rate;
 	ao2_link(playbacks, playback);
 
 	playback->state = STASIS_PLAYBACK_STATE_QUEUED;
