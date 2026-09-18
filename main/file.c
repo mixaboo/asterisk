@@ -487,6 +487,7 @@ static struct ast_filestream *get_filestream(struct ast_format_def *fmt, FILE *b
 	}
 	s->fmt = fmt;
 	s->f = bfile;
+	s->playback_rate = 1.0;
 
 	if (fmt->desc_size)
 		s->_private = ((char *)(s + 1)) + fmt->buf_size;
@@ -1006,11 +1007,15 @@ static enum fsread_res ast_readaudio_callback(struct ast_filestream *s)
 			float samp_rate = (float) ast_format_get_sample_rate(s->fmt->format);
 			unsigned int rate;
 
-			rate = (unsigned int) roundf(samp_rate / ((float) whennext));
+			rate = (unsigned int) roundf(samp_rate * s->playback_rate / ((float) whennext));
+			rate = MAX(rate, 1);
 
 			ast_settimeout_full(s->owner, rate, ast_fsread_audio, s, 1);
 		} else {
-			ast_channel_streamid_set(s->owner, ast_sched_add(ast_channel_sched(s->owner), whennext / (ast_format_get_sample_rate(s->fmt->format) / 1000), ast_fsread_audio, s));
+			unsigned int delay = (unsigned int) roundf(
+				1000.0f * whennext / ast_format_get_sample_rate(s->fmt->format) / s->playback_rate);
+
+			ast_channel_streamid_set(s->owner, ast_sched_add(ast_channel_sched(s->owner), MAX(delay, 1), ast_fsread_audio, s));
 		}
 		s->lasttimeout = whennext;
 		return FSREAD_SUCCESS_NOSCHED;
@@ -1317,8 +1322,8 @@ int ast_file_read_dirs(const char *dir_name, ast_file_on_file on_file, void *obj
 	return res;
 }
 
-int ast_streamfile(struct ast_channel *chan, const char *filename,
-	const char *preflang)
+int ast_streamfile_rate(struct ast_channel *chan, const char *filename,
+	const char *preflang, double playback_rate)
 {
 	struct ast_json * cel_event = NULL;
 	struct ast_filestream *fs = NULL;
@@ -1328,6 +1333,11 @@ int ast_streamfile(struct ast_channel *chan, const char *filename,
 	int res;
 	char custom_filename[256];
 	char *tmp_filename;
+
+	if (!isfinite(playback_rate) || playback_rate <= 0.0 || playback_rate > 4.0) {
+		ast_log(LOG_WARNING, "Invalid playback rate %.3f; it must be greater than 0 and no more than 4\n", playback_rate);
+		return -1;
+	}
 
 	/* If file with the same name exists in /var/lib/asterisk/sounds/custom directory, use that file.
 	 * Otherwise, use the original file*/
@@ -1354,6 +1364,7 @@ int ast_streamfile(struct ast_channel *chan, const char *filename,
 		}
 		tmp_filename = (char *)filename;
 	}
+	fs->playback_rate = playback_rate;
 
 	/* check to see if there is any data present (not a zero length file),
 	 * done this way because there is no where for ast_openstream_full to
@@ -1408,6 +1419,12 @@ int ast_streamfile(struct ast_channel *chan, const char *filename,
 	}
 
 	return res;
+}
+
+int ast_streamfile(struct ast_channel *chan, const char *filename,
+	const char *preflang)
+{
+	return ast_streamfile_rate(chan, filename, preflang, 1.0);
 }
 
 struct ast_filestream *ast_readfile(const char *filename, const char *type, const char *comment, int flags, int check, mode_t mode)
