@@ -661,6 +661,7 @@ static void ari_channels_handle_play(
 	const char *args_lang,
 	int args_offsetms,
 	int args_skipms,
+	double args_speed,
 	const char *args_playback_id,
 	struct ast_ari_response *response)
 {
@@ -704,11 +705,18 @@ static void ari_channels_handle_play(
 			"offsetms cannot be negative");
 		return;
 	}
+	if (args_speed != 0.0 && (!isfinite(args_speed) || args_speed <= 0.0 || args_speed > 4.0)) {
+		ast_ari_response_error(
+			response, 400, "Bad Request",
+			"speed must be greater than 0 and no more than 4");
+		return;
+	}
 
 	language = S_OR(args_lang, snapshot->base->language);
 
 	playback = stasis_app_control_play_uri(control, args_media, args_media_count, language,
-		args_channel_id, STASIS_PLAYBACK_TARGET_CHANNEL, args_skipms, args_offsetms, args_playback_id);
+		args_channel_id, STASIS_PLAYBACK_TARGET_CHANNEL, args_skipms, args_offsetms, args_speed,
+		args_playback_id);
 	if (!playback) {
 		ast_ari_response_error(
 			response, 500, "Internal Server Error",
@@ -747,6 +755,7 @@ void ast_ari_channels_play(struct ast_variable *headers,
 		args->lang,
 		args->offsetms,
 		args->skipms,
+		args->speed,
 		args->playback_id,
 		response);
 }
@@ -762,6 +771,7 @@ void ast_ari_channels_play_with_id(struct ast_variable *headers,
 		args->lang,
 		args->offsetms,
 		args->skipms,
+		args->speed,
 		args->playback_id,
 		response);
 }

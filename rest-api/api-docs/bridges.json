@@ -750,6 +750,15 @@
 							}
 						},
 						{
+							"name": "speed",
+							"description": "Playback speed multiplier. Defaults to 1.0. Supported range is greater than 0 through 4.",
+							"paramType": "query",
+							"required": false,
+							"allowMultiple": false,
+							"dataType": "double",
+							"defaultValue": 1.0
+						},
+						{
 							"name": "playbackId",
 							"description": "Playback Id.",
 							"paramType": "query",
@@ -854,6 +863,16 @@
 								"valueType": "RANGE",
 								"min": 0
 							}
+						}
+						,
+						{
+							"name": "speed",
+							"description": "Playback speed multiplier. Defaults to 1.0. Supported range is greater than 0 through 4.",
+							"paramType": "query",
+							"required": false,
+							"allowMultiple": false,
+							"dataType": "double",
+							"defaultValue": 1.0
 						}
 					],
 					"errorResponses": [

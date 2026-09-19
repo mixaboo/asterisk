@@ -95,6 +95,7 @@ enum stasis_app_playback_target_type {
  * \param target_type What the target type is
  * \param skipms Number of milliseconds to skip for forward/reverse operations.
  * \param offsetms Number of milliseconds to skip before playing.
+ * \param playback_rate Playback speed multiplier; 1.0 is normal speed.
  * \param id ID to assign the new playback or NULL for default.
  * \return Playback control object.
  * \retval NULL on error.
@@ -103,7 +104,7 @@ struct stasis_app_playback *stasis_app_control_play_uri(
 	struct stasis_app_control *control, const char **media,
 	size_t media_count, const char *language, const char *target_id,
 	enum stasis_app_playback_target_type target_type,
-	int skipms, long offsetms, const char *id);
+	int skipms, long offsetms, double playback_rate, const char *id);
 
 /*!
  * \brief Gets the current state of a playback operation.

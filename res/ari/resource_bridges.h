@@ -409,6 +409,8 @@ struct ast_ari_bridges_play_args {
 	int offsetms;
 	/*! Number of milliseconds to skip for forward/reverse operations. */
 	int skipms;
+	/*! Playback speed multiplier. Defaults to 1.0. Supported range is greater than 0 through 4. */
+	double speed;
 	/*! Playback Id. */
 	const char *playback_id;
 };
@@ -453,6 +455,8 @@ struct ast_ari_bridges_play_with_id_args {
 	int offsetms;
 	/*! Number of milliseconds to skip for forward/reverse operations. */
 	int skipms;
+	/*! Playback speed multiplier. Defaults to 1.0. Supported range is greater than 0 through 4. */
+	double speed;
 };
 /*!
  * \brief Body parsing function for /bridges/{bridgeId}/play/{playbackId}.

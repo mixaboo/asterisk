@@ -365,6 +365,7 @@ static int ari_bridges_play_helper(const char **args_media,
 	const char *args_lang,
 	int args_offset_ms,
 	int args_skipms,
+	double args_speed,
 	const char *args_playback_id,
 	struct ast_ari_response *response,
 	struct ast_bridge *bridge,
@@ -388,7 +389,7 @@ static int ari_bridges_play_helper(const char **args_media,
 
 	playback = stasis_app_control_play_uri(control, args_media, args_media_count,
 		language, bridge->uniqueid, STASIS_PLAYBACK_TARGET_BRIDGE, args_skipms,
-		args_offset_ms, args_playback_id);
+		args_offset_ms, args_speed, args_playback_id);
 
 	if (!playback) {
 		ast_ari_response_alloc_failed(response);
@@ -416,6 +417,7 @@ static void ari_bridges_play_new(const char **args_media,
 	const char *args_lang,
 	int args_offset_ms,
 	int args_skipms,
+	double args_speed,
 	const char *args_playback_id,
 	struct ast_ari_response *response,
 	struct ast_bridge *bridge)
@@ -520,7 +522,7 @@ static void ari_bridges_play_new(const char **args_media,
 
 	ao2_lock(control);
 	if (ari_bridges_play_helper(args_media, args_media_count, args_lang,
-			args_offset_ms, args_skipms, args_playback_id, response, bridge,
+			args_offset_ms, args_skipms, args_speed, args_playback_id, response, bridge,
 			control, &json, &playback_url)) {
 		ao2_unlock(control);
 		return;
@@ -600,6 +602,7 @@ static enum play_found_result ari_bridges_play_found(const char **args_media,
 	const char *args_lang,
 	int args_offset_ms,
 	int args_skipms,
+	double args_speed,
 	const char *args_playback_id,
 	struct ast_ari_response *response,
 	struct ast_bridge *bridge,
@@ -623,7 +626,7 @@ static enum play_found_result ari_bridges_play_found(const char **args_media,
 	}
 
 	if (ari_bridges_play_helper(args_media, args_media_count,
-			args_lang, args_offset_ms, args_skipms, args_playback_id,
+			args_lang, args_offset_ms, args_skipms, args_speed, args_playback_id,
 			response, bridge, control, &json, &playback_url)) {
 		ao2_unlock(control);
 		return PLAY_FOUND_FAILURE;
@@ -642,6 +645,7 @@ static void ari_bridges_handle_play(
 	const char *args_lang,
 	int args_offset_ms,
 	int args_skipms,
+	double args_speed,
 	const char *args_playback_id,
 	struct ast_ari_response *response)
 {
@@ -653,6 +657,12 @@ static void ari_bridges_handle_play(
 	if (!bridge) {
 		return;
 	}
+	if (args_speed != 0.0 && (!isfinite(args_speed) || args_speed <= 0.0 || args_speed > 4.0)) {
+		ast_ari_response_error(
+			response, 400, "Bad Request",
+			"speed must be greater than 0 and no more than 4");
+		return;
+	}
 
 	while ((play_channel = stasis_app_bridge_playback_channel_find(bridge))) {
 		/* If ari_bridges_play_found fails because the channel is unavailable for
@@ -662,7 +672,7 @@ static void ari_bridges_handle_play(
 		 * in which case we'll revert to ari_bridges_play_new.
 		 */
 		if (ari_bridges_play_found(args_media, args_media_count, args_lang,
-				args_offset_ms, args_skipms, args_playback_id, response, bridge,
+				args_offset_ms, args_skipms, args_speed, args_playback_id, response, bridge,
 				play_channel) == PLAY_FOUND_CHANNEL_UNAVAILABLE) {
 			continue;
 		}
@@ -670,7 +680,7 @@ static void ari_bridges_handle_play(
 	}
 
 	ari_bridges_play_new(args_media, args_media_count, args_format, args_lang, args_offset_ms,
-		args_skipms, args_playback_id, response, bridge);
+		args_skipms, args_speed, args_playback_id, response, bridge);
 }
 
 
@@ -685,6 +695,7 @@ void ast_ari_bridges_play(struct ast_variable *headers,
 	args->lang,
 	args->offsetms,
 	args->skipms,
+	args->speed,
 	args->playback_id,
 	response);
 }
@@ -700,6 +711,7 @@ void ast_ari_bridges_play_with_id(struct ast_variable *headers,
 	args->lang,
 	args->offsetms,
 	args->skipms,
+	args->speed,
 	args->playback_id,
 	response);
 }
